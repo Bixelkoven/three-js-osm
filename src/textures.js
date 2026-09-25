@@ -1,24 +1,19 @@
 import * as THREE from 'three';
 import Chance from 'chance';
-import { metalness, roughness, texture } from 'three/tsl';
+import { ThreeMFLoader } from 'three/examples/jsm/Addons.js';
 
-// postavke tekstura
 const textureSelectionProperties = {
     concrete: { roughness: 0.8, metalness: 0.0},
     plaster: { roughness: 0.8, metalness: 0.0},
     brick: { roughness: 0.9, metalness: 0.0},
-    glass: { roughness: 0.1, metalness: 0.9},
-    genexConcrete: { roughness: 0.95, metalness: 0.0},
-    genexRoof: { roughness: 0.8, metalness: 0.0},
-    genexWindow: { roughness: 0.1, metalness: 0.9}
+    glass: { roughness: 0.1, metalness: 0.9}
 };
 
-// maps
 const materialCache = new Map();
 const textureCache = new Map();
 const pbrSet = new Map();
-
-// prihvaćeni OSM tagovi za nijanse boja
+const analysisMaterialCache = new Map();
+let defBdgMaterial = null;
 const acceptedColours = new Set([
     'white','black','gray','grey','red','green','blue','yellow','cyan','magenta',
     'silver','maroon','olive','lime','aqua','teal','navy','fuchsia','purple',
@@ -26,7 +21,6 @@ const acceptedColours = new Set([
     'coral','plum','orchid','turquoise','violet','indigo','azure'
 ]);
 
-// fajlovi
 const texturePaths = {
     concrete: {
         basecolor: '/textures/concrete_window_color.jpg',
@@ -59,36 +53,10 @@ const texturePaths = {
         height: '/textures/glass_window_height.png',            // PNG fajl
         ao: '/textures/glass_window_AO.jpg',
         metalness: '/textures/glass_window_metalness.jpg'
-    },
-    genexConcrete: {
-        basecolor: '/textures/genex_concrete_color.png',        // PNG fajl
-        normal: '/textures/genex_concrete_normal.png',          // PNG fajl
-        roughness: '/textures/genex_concrete_roughness.png',    // PNG fajl
-        height: '/textures/genex_concrete_height.png',          // PNG fajl
-        ao: '/textures/genex_concrete_AO.png',                  // PNG fajl
-        metalness: '/textures/genex_concrete_metalness.png'     // PNG fajl
-    },
-    genexRoof: {
-        basecolor: '/textures/genex_roof_color.jpg',    
-        normal: '/textures/genex_roof_normal.jpg',      
-        roughness: '/textures/genex_roof_roughness.jpg',    
-        height: '/textures/genex_roof_height.jpg',      
-        ao: '/textures/genex_roof_AO.jpg',              
-        metalness: '/textures/genex_roof_metalness.jpg' 
-    },
-    genexWindow: {
-        basecolor: '/textures/genex_window_color.jpg',    
-        normal: '/textures/genex_window_normal.jpg',      
-        roughness: '/textures/genex_window_roughness.jpg',    
-        height: '/textures/genex_window_height.jpg',      
-        ao: '/textures/genex_window_AO.jpg',              
-        metalness: '/textures/genex_window_metalness.jpg' 
     }
 };
 
 const textureLoader = new THREE.TextureLoader();
-
-// pokušaji učitavanja tekstura
 const texturePromise = {};
 Object.entries(texturePaths).forEach(([type, paths]) => {
     texturePromise[type] = Promise.all(Object.entries(paths).map(([key, path]) =>
@@ -104,16 +72,8 @@ Object.entries(texturePaths).forEach(([type, paths]) => {
                 }
                 texture.flipY = false;
 
-                if (path.includes('genex_roof')){
-                    texture.repeat = new THREE.Vector2(4, 0.1);
-                    texture.offset = new THREE.Vector2(0, 0);
-                } else if (path.includes('genex_concrete') || path.includes('genex_window')) {
-                    texture.repeat = new THREE.Vector2(1, 0.1);
-                    texture.offset = new THREE.Vector2(0, 0);
-                } else {
-                    texture.repeat = new THREE.Vector2(0.15, 0.15);
-                    texture.offset = new THREE.Vector2(0.2, 0.2);
-                }
+                texture.repeat = new THREE.Vector2(0.15, 0.15);
+                texture.offset = new THREE.Vector2(0.2, 0.2);
 
                 texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
                 textureCache.set(path, texture);
@@ -132,7 +92,6 @@ Object.entries(texturePaths).forEach(([type, paths]) => {
 
 export const texturePromiseAll = () => Promise.all(Object.values(texturePromise));
 
-// regex provera value-a za OSM tagove boja
 function checkColourTagValues(colourValueRaw) {
     if (typeof colourValueRaw !== 'string') return null;
     const value = colourValueRaw.trim();
@@ -148,7 +107,6 @@ function checkColourTagValues(colourValueRaw) {
 }
 
 export function getBuildingMaterial(tags) {
-    // prioriteti OSM tagova
     const materialTagsOSM = ['building:material', 'material', 'wall:material', 'building:facade:material'];
     let materialType = null;
     for (const key of materialTagsOSM){
@@ -161,7 +119,6 @@ export function getBuildingMaterial(tags) {
         }
     }
 
-    // randomizovanje ako nema taga za materijal
     const chance = new Chance();
 
     if (!materialType) {
@@ -174,7 +131,6 @@ export function getBuildingMaterial(tags) {
     // ako nema taga iskoristi postavke za concrete
     const texturePreset = textureSelectionProperties[materialType] || textureSelectionProperties.concrete;
 
-    // nijansa boje ako ima colour=* tagove
     const colourTagsOSM = ['building:colour', 'building:facade:colour', 'colour'];
     let colourValue = null;
     for (const key of colourTagsOSM){
@@ -190,7 +146,6 @@ export function getBuildingMaterial(tags) {
         }
     }
 
-    // ako nema tag za boju, random nijansa u zavisnosti od materijala
     if (!colourValue) {
         const coloursPerBdgMaterial = {
             concrete: ['#f0f0f0', '#c9c9c9', '#a0a0a0', '#777777', '#f5f5dc'],
@@ -217,7 +172,6 @@ export function getBuildingMaterial(tags) {
         return materialCache.get(cacheKey);
     }
 
-    // mesh-ovi
     const textureSet = pbrSet.get(materialType);
     if (!textureSet) {
         console.warn(`Teksture za ${materialType} nisu dostavljene, koristim običan materijal`);
@@ -231,35 +185,20 @@ export function getBuildingMaterial(tags) {
         return material;
     }
 
-    // texturePaths -> texturePromis -> textureSet
-    // svi fajlovi tekstura/mapa
-
-    // textureSelectionProperties(materialType) -> texturePreset
-    // brojcane vrednosti
-
     let material;
     if (materialType === 'glass') {
         material = new THREE.MeshPhysicalMaterial({
-            // nijansa nad teksturom
-            // color: new THREE.Color(colourValue),
-            // glavna tekstura (alpha)
             map: textureSet.basecolor,
-            // normal
             normalMap: textureSet.normal,
             normalScale: new THREE.Vector2(1,1),
-            // roughness
             roughnessMap: textureSet.roughness,
             roughness: texturePreset.roughness,
-            // metalness
             metalnessMap: textureSet.metalness,
             metalness: texturePreset.metalness,
-            // height
             displacementMap: textureSet.height,
             displacementScale: 0.1,
-            // AO
             aoMap: textureSet.ao,
             aoMapIntensity: 1.0,
-            //
             clearcoat: 1.0,
             clearcoatRoughness: 0.1
         });
@@ -283,57 +222,27 @@ export function getBuildingMaterial(tags) {
     return material;
 }
 
-// mesh za genex
-export function getGenexMaterial(type, colorOverride = null){
-    const texturePreset = textureSelectionProperties[type] || textureSelectionProperties.concrete;
-    const cacheKey = `genex_${type}`;
-    if (materialCache.has(cacheKey)) {
-        return materialCache.get(cacheKey);
-    }
-
-    const textureSet = pbrSet.get(type);
-    if (!textureSet) {
-        console.warn(`Teksture Genex modula za ${type} nisu dostavljene`);
-        return new THREE.MeshStandardMaterial({color: colorOverride || 0xcccccc});
-    }
-
-    let material;
-    if (type === 'genexWindow') {
-        material = new THREE.MeshPhysicalMaterial({
-            color: colorOverride || 0xdddddd,
-            map: textureSet.basecolor,
-            normalMap: textureSet.normal,
-            normalScale: new THREE.Vector2(1, 1),
-            roughnessMap: textureSet.roughness,
-            roughness: texturePreset.roughness,
-            metalnessMap: textureSet.metalness,
-            metalness: texturePreset.metalness,
-            displacementMap: textureSet.height,
-            displacementScale: 0.02,
-            aoMap: textureSet.ao,
-            aoMapIntensity: 1.0,
-            envMapIntensity: 1.5,
-            clearcoat: 0.8,
-            clearcoatRoughness: 0.1,
-            reflectivity: 1.0,
-            transmission: 0.1
+export function getDefaultBuildingMaterial() {
+    if (!defBdgMaterial) {
+        defBdgMaterial = new THREE.MeshStandardMaterial({
+            color: 0xdddddd,
+            roughness: 0.85,
+            metalness: 0.0
         });
-    } else {
-        material = new THREE.MeshStandardMaterial({
-            color: colorOverride || 0xffffff,
-            map: textureSet.basecolor,
-            normalMap: textureSet.normal,
-            normalScale: new THREE.Vector2(1,1),
-            roughnessMap: textureSet.roughness,
-            roughness: texturePreset.roughness,
-            metalness: texturePreset.metalness,
-            displacementMap: textureSet.height,
-            displacementScale: 0.05,
-            aoMap: textureSet.ao,
-            aoMapIntensity: 1.0
-    }   );
     }
-    material.needsUpdate = true;
-    materialCache.set(cacheKey, material);
+    return defBdgMaterial;
+}
+
+export function getAnalysisMaterial(color = "#dddddd"){
+    const key = color.toLowerCase();
+    if (analysisMaterialCache.has(key)) {
+        return analysisMaterialCache.get(key);
+    }
+    const material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(color),
+        roughness: 0.85,
+        metalness: 0.0
+    });
+    analysisMaterialCache.set(key, material);
     return material;
 }

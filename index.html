@@ -3,11 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link href="https://fonts.cdnfonts.com/css/trueno" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Novi Beograd</title>
+    <title>OSM 3D</title>
   </head>
   <body>
+    <div id="slippyMap"></div>
+    <div id="slippyCon">
+        <button id="bboxButton" disabled>Izaberite područje</button>
+    </div>
     <div id="app"></div>
+    <div id="loadingScreen" class="loading-screen hidden">
+        <div class="loading-content">
+            <div id="loadingSpin" class="loading-spin"></div>
+            <div id="loadingText">Preuzimanje OSM podataka</div>
+            <button id="loadingButton" class="loading-button hidden">Zatvori</button>
+        </div>
+    </div>
     <div id="buildingPopup" class="building-popup">
         <button class="popup-close" onclick="closeBuildingPopup()">X</button>
         <div id="popupContent"></div>

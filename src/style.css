@@ -8,11 +8,107 @@ html, body{
   width: 100%;
   height: 100%;
   overflow: hidden;
+  font-family: "Trueno", sans-serif;
+}
+
+#slippyMap {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 400px;
+    height: 300px;
+    z-index: 1000;
+    border: 2px solid #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#slippyCon {
+    position: fixed;
+    top: 330px;
+    left: 20px;
+    width: 400px;
+    z-index: 1000;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+#bboxButton {
+    width: 100%;
+    padding: 8px;
+    cursor: pointer;
+    font-family: "Trueno", sans-serif;
+}
+
+#bboxButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+#bboxWarn {
+    margin-top: 5px;
+    font-size: 15px;
+    color: #ccc;
+    text-align: center;
 }
 
 #app {
   width: 100%;
   height: 100%;
+}
+
+.loading-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.loading-screen.hidden {
+    display: none;
+}
+
+.loading-content {
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 24px 32px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    font-size: 18px;
+}
+
+.loading-spin {
+    width: 36px;
+    height: 36px;
+    border: 4px solid rgba(255, 255, 255, 0.25);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: scene-spin 0.8s linear infinite;
+}
+
+.loading-screen.hidden {
+    display: none;
+}
+
+.loading-button {
+    padding: 7px 18px;
+    cursor: pointer;
+}
+
+.loading-button.hidden {
+    display: none;
+}
+
+@keyframes scene-spin {
+    to { transform: rotate(360deg); }
 }
 
 .building-popup {
