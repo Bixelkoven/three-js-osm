@@ -14,7 +14,7 @@ import { associateNodesToBuildings } from './osmAssoc.js';
 const container = document.getElementById("app");
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(container.clientWidth, container.clientHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
 renderer.setClearColor(0x87ceeb)
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -86,8 +86,8 @@ const hemiLight = new THREE.HemisphereLight( 0x0000ff, 0x00ff00, 1 );
 const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
 sunLight.position.set(1000, 1000, 500);
 sunLight.castShadow = true;
-sunLight.shadow.mapSize.width = 4096;
-sunLight.shadow.mapSize.height = 4096;
+sunLight.shadow.mapSize.width = 1024;
+sunLight.shadow.mapSize.height = 1024;
 sunLight.shadow.camera.near = 0.5;
 sunLight.shadow.camera.far = 3000
 sunLight.shadow.camera.left = -1000

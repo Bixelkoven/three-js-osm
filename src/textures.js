@@ -66,9 +66,10 @@ Object.entries(texturePaths).forEach(([type, paths]) => {
                 return;
             }
             textureLoader.load(path, (texture) => {
-                texture.colorSpace = THREE.SRGBColorSpace;
-                if (key === 'normal') {
-                    texture.colorSpace = THREE.NoColorSpace;
+                if (key === 'basecolor') {
+                    texture.colorSpace = THREE.SRGBColorSpace;
+                } else {
+                    texture.colorSpace = THREE.NoColorSpace
                 }
                 texture.flipY = false;
 
@@ -195,8 +196,8 @@ export function getBuildingMaterial(tags) {
             roughness: texturePreset.roughness,
             metalnessMap: textureSet.metalness,
             metalness: texturePreset.metalness,
-            displacementMap: textureSet.height,
-            displacementScale: 0.1,
+            // displacementMap: textureSet.height,
+            // displacementScale: 0.1,
             aoMap: textureSet.ao,
             aoMapIntensity: 1.0,
             clearcoat: 1.0,
@@ -210,8 +211,8 @@ export function getBuildingMaterial(tags) {
             roughnessMap: textureSet.roughness,
             roughness: texturePreset.roughness,
             metalness: texturePreset.metalness,
-            displacementMap: textureSet.height,
-            displacementScale: 0.05,
+            // displacementMap: textureSet.height,
+            // displacementScale: 0.05,
             aoMap: textureSet.ao,
             aoMapIntensity: 1.0
         });
